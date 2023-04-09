@@ -30,8 +30,11 @@ ui <- fluidPage(
       )
     ),
     mainPanel(
-      h4("Total Sum of Money:"),
+      h4("Total needed:"),
       textOutput(outputId = "total_money"),
+      h5("This is the estimated amount of money you will need for retirement."),
+      h4("Monthly pay-outs over time"),
+      h5("This graph shows the adjusted pay-outs over your retirement."),
       plotOutput(outputId = "pay_plot")
     )
   )
@@ -71,7 +74,7 @@ server <- function(input, output) {
     df <- data.frame(year = years, monthly_pay = monthly_pay_adj)
     
     ggplot(df, aes(x = year, y = monthly_pay)) +
-      geom_bar(stat = "identity", fill = "darkblue") +
+      geom_bar(stat = "identity", fill = "cornflowerblue") +
       geom_hline(yintercept = monthly_pay, linetype = "dashed", color = "red") +
       labs(x = "", y = "Monthly Pay-out (Euros)", title = "Monthly Pay-out Adjusted for Inflation") +
       theme_minimal()
