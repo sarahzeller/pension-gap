@@ -1,9 +1,6 @@
 library(shiny)
 library(tidyverse)
 
-library(shiny)
-library(tidyverse)
-
 ui <- fluidPage(
   titlePanel("Retirement Planner"),
   tabsetPanel(
@@ -56,6 +53,16 @@ ui <- fluidPage(
                    inputId = "annual_growth_rate",
                    label = "Expected Annual Growth Rate (%):",
                    value = 5
+                 ),
+                 numericInput(
+                   inputId = "dividends",
+                   label = "Expected Annual Dividends (%):",
+                   value = 2.5
+                 ),
+                 numericInput(
+                   inputId = "etf_payout",
+                   label = "Monthly ETF Pay-out (today's value):",
+                   value = 50
                  )
                ),
                mainPanel(
@@ -65,8 +72,8 @@ ui <- fluidPage(
                  h4("Net Worth After Taxes:"),
                  textOutput(outputId = "net_worth"),
                  h5("This is the amount of money you would have after selling your ETF investments and paying capital gains taxes."),
-                 h4("Amount of ETFs to sell in retirement year 1:"),
-                 textOutput(outputId = "sell_etf_year1")
+                 h4("Total dividends in retirement year 1:"),
+                 textOutput(outputId = "dividends_year_1")
                )
              )
     )
@@ -137,12 +144,12 @@ server <- function(input, output) {
         paste("€", ., sep = " ")
     })
   
-  output$sell_etf_year1 <- renderText({
+  output$dividends_year_1 <- renderText({
     future_value <- etf_value()
-    sell_amount <- future_value / input$years
+    dividends <- future_value * input$dividends/100
     
     # Format and return the result
-    sell_amount %>% 
+    dividends %>% 
       round(2) %>% 
       format(big.mark = " ", decimal.mark = ",", nsmall = 2, trim = TRUE, scientific = FALSE) %>% 
       paste("€", ., sep = " ")
