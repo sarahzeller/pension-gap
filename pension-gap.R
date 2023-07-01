@@ -18,7 +18,7 @@ ui <- fluidPage(
                  numericInput(
                    inputId = "monthly_pay",
                    label = "Monthly Pay-out (today's value):",
-                   value = 2000
+                   value = 1500
                  ),
                  numericInput(
                    inputId = "inflation_rate",
@@ -28,7 +28,7 @@ ui <- fluidPage(
                  numericInput(
                    inputId = "retirement_year",
                    label = "Year of Retirement:",
-                   value = 2050
+                   value = 2060
                  )
                ),
                mainPanel(
@@ -57,12 +57,12 @@ ui <- fluidPage(
                  numericInput(
                    inputId = "dividends",
                    label = "Expected Annual Dividends (%):",
-                   value = 2.5
+                   value = 1.3
                  ),
                  numericInput(
                    inputId = "etf_payout",
-                   label = "Monthly ETF Pay-out (today's value):",
-                   value = 50
+                   label = "Monthly ETF Pay-out (%):",
+                   value = 3
                  )
                ),
                mainPanel(
@@ -73,7 +73,11 @@ ui <- fluidPage(
                  textOutput(outputId = "net_worth"),
                  h5("This is the amount of money you would have after selling your ETF investments and paying capital gains taxes."),
                  h4("Total dividends in retirement year 1:"),
-                 textOutput(outputId = "dividends_year_1")
+                 textOutput(outputId = "dividends_year_1"),
+                 h4("Payouts during retirement"),
+                 plotOutput(outputId = "payout_retirement"),
+                 h4("ETF value in retirement"),
+                 plotOutput(outputId = "etf_value_retirement")
                )
              )
     )
@@ -153,6 +157,57 @@ server <- function(input, output) {
       round(2) %>% 
       format(big.mark = " ", decimal.mark = ",", nsmall = 2, trim = TRUE, scientific = FALSE) %>% 
       paste("€", ., sep = " ")
+  })
+  
+  output$payout_retirement <- renderPlot({
+    etf_retirement_y1 <- etf_value()
+    payout <- input$etf_payout / 100
+    dividends <- input$dividends / 100
+    growth_rate <- (input$annual_growth_rate - dividends) / 100
+    years <- input$years
+    retirement_year <- input$retirement_year
+    inflation_rate <- input$inflation_rate / 100
+    monthly_pay <- input$monthly_pay
+    
+    retirement_needs <- data.frame(
+      year = retirement_year:(retirement_year + years -1)) |> 
+      mutate(need = monthly_pay * 12* (1 + inflation_rate)^((year - retirement_year) + (retirement_year - current_year))
+    )
+    
+    payout_in_retirement <- data.frame(
+      year = input$retirement_year:(input$retirement_year + years -1),
+      etf_value = etf_retirement_y1 * (1 - payout + growth_rate)^(0:(years - 1))
+    ) |> 
+      mutate(dividend = etf_value * dividends,
+             payout = etf_value * payout) |> 
+      pivot_longer(cols = c("dividend", "payout"),
+                   names_to = "type")
+    
+    ggplot() +
+      geom_bar(data = payout_in_retirement,
+               aes(x = year, y = value, fill = type),
+               position = "stack", stat = "identity") +
+      geom_line(data = retirement_needs,
+                aes(x = year, y = need)) +
+      theme_classic()
+  })
+  
+  output$etf_value_retirement <- renderPlot({
+    etf_retirement_y1 <- etf_value()
+    payout <- input$etf_payout / 100
+    growth_rate <- (input$annual_growth_rate - input$dividends) / 100
+    retirement_years <- input$years
+    
+    etf_in_retirement <- data.frame(
+      year = input$retirement_year:(input$retirement_year + retirement_years - 1),
+      value_after_payout = etf_retirement_y1 * (1 - payout + growth_rate)^(0:(retirement_years - 1))
+    )
+    
+    ggplot(etf_in_retirement, aes(x = year, y = value_after_payout)) +
+      geom_col() +
+      theme_classic() +
+      labs(y = "ETF portfolio value")
+    
   })
   
 }
