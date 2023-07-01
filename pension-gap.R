@@ -185,7 +185,7 @@ server <- function(input, output) {
              dividend_after_taxes = ifelse(taxes >= dividend, 0, dividend - taxes),
              payout_after_taxes = ifelse(taxes <= dividend,
                                          payout,
-                                         payout - taxes)) |> 
+                                         payout - (taxes - dividend))) |> 
       pivot_longer(cols = c("dividend", "payout", 
                             "dividend_after_taxes", "payout_after_taxes"),
                    names_to = "type") |> 
