@@ -1,4 +1,5 @@
 library(shiny)
+library(shinyBS)
 library(tidyverse)
 
 ui <- fluidPage(
@@ -47,7 +48,7 @@ ui <- fluidPage(
                  numericInput(
                    inputId = "monthly_investment",
                    label = "Monthly Investment Amount:",
-                   value = 100
+                   value = 500
                  ),
                  numericInput(
                    inputId = "annual_growth_rate",
@@ -61,20 +62,16 @@ ui <- fluidPage(
                  ),
                  numericInput(
                    inputId = "etf_payout",
-                   label = "Monthly ETF Pay-out (%):",
+                   label = "Yearly ETF Pay-out (%):",
                    value = 3
                  )
                ),
                mainPanel(
                  h4("Total ETF Value at Retirement:"),
                  textOutput(outputId = "future_etf"),
-                 h5("This is the total value of your ETF investments at the year of retirement."),
-                 h4("Net Worth After Taxes:"),
-                 textOutput(outputId = "net_worth"),
-                 h5("This is the amount of money you would have after selling your ETF investments and paying capital gains taxes."),
-                 h4("Total dividends in retirement year 1:"),
-                 textOutput(outputId = "dividends_year_1"),
-                 h4("Payouts during retirement"),
+                 bsTooltip("future_etf",
+                           "This is the total value of your ETF investments at the year of retirement."),
+                 h4("Yearly payouts during retirement"),
                  plotOutput(outputId = "payout_retirement"),
                  h4("ETF value in retirement"),
                  plotOutput(outputId = "etf_value_retirement")
@@ -207,6 +204,7 @@ server <- function(input, output) {
       geom_line(data = retirement_needs,
                 aes(x = year, y = need, col = colour)) +
       scale_colour_manual(breaks = "yearly need", values = "grey70") +
+      scale_y_continuous(labels = scales::label_comma()) +
       labs(fill = "Type",
            col = "",
            y = "Yearly payout (€)",
@@ -227,8 +225,9 @@ server <- function(input, output) {
     
     ggplot(etf_in_retirement, aes(x = year, y = value_after_payout)) +
       geom_col() +
-      theme_classic() +
-      labs(y = "ETF portfolio value")
+      scale_y_continuous(labels = scales::label_comma()) +
+      labs(y = "ETF portfolio value") +
+      theme_classic()
     
   })
   
