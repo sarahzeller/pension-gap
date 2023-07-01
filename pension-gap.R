@@ -170,7 +170,8 @@ server <- function(input, output) {
     monthly_pay <- input$monthly_pay
     
     retirement_needs <- data.frame(
-      year = retirement_year:(retirement_year + years -1)) |> 
+      year = retirement_year:(retirement_year + years -1),
+      colour = "yearly need") |> 
       mutate(need = monthly_pay * 12* (1 + inflation_rate)^((year - retirement_year) + (retirement_year - current_year))
     )
     
@@ -179,16 +180,37 @@ server <- function(input, output) {
       etf_value = etf_retirement_y1 * (1 - payout + growth_rate)^(0:(years - 1))
     ) |> 
       mutate(dividend = etf_value * dividends,
-             payout = etf_value * payout) |> 
-      pivot_longer(cols = c("dividend", "payout"),
-                   names_to = "type")
+             payout = etf_value * payout,
+             taxes = ifelse(dividend + payout < 1000, 
+                            0, 
+                            # free amount : 1000; Taxes: 28%
+                            (dividend + payout - 1000) * .28),
+             dividend_after_taxes = ifelse(taxes >= dividend, 0, dividend - taxes),
+             payout_after_taxes = ifelse(taxes <= dividend,
+                                         payout,
+                                         payout - taxes)) |> 
+      pivot_longer(cols = c("dividend", "payout", 
+                            "dividend_after_taxes", "payout_after_taxes"),
+                   names_to = "type") |> 
+      mutate(after = grepl("after_taxes", type)) |> 
+      mutate(type = gsub("_after_taxes", "", type))
+    print(payout_in_retirement |> names())
     
     ggplot() +
-      geom_bar(data = payout_in_retirement,
+      geom_bar(data = payout_in_retirement |> filter(after),
                aes(x = year, y = value, fill = type),
                position = "stack", stat = "identity") +
+      geom_bar(data = payout_in_retirement |> filter(!after),
+               aes(x = year, y = value, fill = type),
+               alpha = .2,
+               position = "stack", stat = "identity") +
       geom_line(data = retirement_needs,
-                aes(x = year, y = need)) +
+                aes(x = year, y = need, col = colour)) +
+      scale_colour_manual(breaks = "yearly need", values = "grey70") +
+      labs(fill = "Type",
+           col = "",
+           y = "Yearly payout (€)",
+           caption = "Lightly shaded areas are gains before taxes.") +
       theme_classic()
   })
   
